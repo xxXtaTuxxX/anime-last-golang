@@ -1,0 +1,211 @@
+package main
+
+import (
+	"backend/config"
+	"backend/internal/adapters/handler"
+	"backend/internal/adapters/repository"
+	"backend/internal/core/service"
+	"backend/internal/middleware"
+	"backend/internal/seeder"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Check if DB file exists to determine if we need to seed
+	// We check BEFORE connecting because connecting might create the file (empty).
+	_, err = os.Stat(cfg.DBUrl)
+	isNewDB := os.IsNotExist(err)
+
+	repo, err := repository.NewSQLiteRepository(cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Auto-seed if it was a new DB
+	if isNewDB {
+		log.Println("New database detected. Running auto-seeding...")
+		seeder.SeedAll(repo.DB())
+	}
+
+	// Services
+	authService := service.NewAuthService(repo, repo, cfg)
+	userService := service.NewUserService(repo, repo)
+	roleService := service.NewRoleService(repo, repo)
+	permService := service.NewPermissionService(repo)
+	typeService := service.NewTypeService(repo)
+	seasonService := service.NewSeasonService(repo)
+	studioService := service.NewStudioService(repo)
+	languageService := service.NewLanguageService(repo)
+	animeService := service.NewAnimeService(repo)
+	episodeService := service.NewEpisodeService(repo)
+	modelService := service.NewModelService(repo)
+	categoryService := service.NewCategoryService(repo)
+
+	exportService := service.NewExportService(cfg.BlenderPath, cfg.ExportDir, cfg.ExportTimeout)
+	watchLaterService := service.NewWatchLaterService(repo)
+	historyService := service.NewHistoryService(repo)
+
+	// Handlers
+	authHandler := handler.NewAuthHandler(authService)
+	userHandler := handler.NewUserHandler(userService)
+	roleHandler := handler.NewRoleHandler(roleService)
+	permHandler := handler.NewPermissionHandler(permService)
+	typeHandler := handler.NewTypeHandler(typeService)
+	seasonHandler := handler.NewSeasonHandler(seasonService)
+	studioHandler := handler.NewStudioHandler(studioService)
+	languageHandler := handler.NewLanguageHandler(languageService)
+	animeHandler := handler.NewAnimeHandler(animeService)
+	episodeHandler := handler.NewEpisodeHandler(episodeService)
+	modelHandler := handler.NewModelHandler(modelService)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
+
+	exportHandler := handler.NewExportHandler(exportService)
+	uploadHandler := handler.NewUploadHandler()
+	searchHandler := handler.NewSearchHandler(repo, repo, repo)
+	watchLaterHandler := handler.NewWatchLaterHandler(watchLaterService)
+	historyHandler := handler.NewHistoryHandler(historyService)
+
+	r := gin.Default()
+	r.MaxMultipartMemory = 1024 << 20 // 1GB
+
+	// CORS
+	allowOrigins := strings.Split(cfg.AllowOrigins, ",")
+	log.Printf("CORS: Allowing origins: %v", allowOrigins)
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     allowOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
+	r.Static("/uploads", "./uploads")
+
+	api := r.Group("/api")
+	{
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.Refresh)
+		}
+
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware(cfg))
+		{
+			protected.GET("/me", func(c *gin.Context) {
+				userID, _ := c.Get("userID")
+				role, _ := c.Get("role")
+				c.JSON(200, gin.H{"id": userID, "role": role})
+			})
+
+			// Routes (Grouped for brevity, matching previous structure)
+			protected.Group("/users").GET("", userHandler.GetAll).POST("", userHandler.Create).PUT("/:id", userHandler.Update).DELETE("/:id", userHandler.Delete)
+			protected.Group("/roles").GET("", roleHandler.GetAll).POST("", roleHandler.Create).PUT("/:id", roleHandler.Update).DELETE("/:id", roleHandler.Delete)
+			protected.Group("/permissions").GET("", permHandler.GetAll).POST("", permHandler.Create).PUT("/:id", permHandler.Update).DELETE("/:id", permHandler.Delete)
+			protected.GET("/search", searchHandler.Search)
+
+			models := protected.Group("/models")
+			models.GET("", modelHandler.GetAll).POST("", modelHandler.Upload).PUT("/:id", modelHandler.Update).DELETE("/:id", modelHandler.Delete).GET("/:id/download", modelHandler.Download)
+
+			protected.POST("/upload", uploadHandler.UploadFile)
+
+			protected.Group("/categories").GET("", categoryHandler.GetAll).POST("", categoryHandler.Create).PUT("/:id", categoryHandler.Update).DELETE("/:id", categoryHandler.Delete)
+			protected.Group("/types").GET("", typeHandler.GetAll).POST("", typeHandler.Create).PUT("/:id", typeHandler.Update).DELETE("/:id", typeHandler.Delete)
+			protected.Group("/seasons").GET("", seasonHandler.GetAll).POST("", seasonHandler.Create).PUT("/:id", seasonHandler.Update).DELETE("/:id", seasonHandler.Delete)
+			protected.Group("/studios").GET("", studioHandler.GetAll).POST("", studioHandler.Create).PUT("/:id", studioHandler.Update).DELETE("/:id", studioHandler.Delete)
+			protected.Group("/languages").GET("", languageHandler.GetAll).POST("", languageHandler.Create).PUT("/:id", languageHandler.Update).DELETE("/:id", languageHandler.Delete)
+
+			// Anime Routes
+			animes := protected.Group("/animes")
+			{
+				animes.GET("", animeHandler.GetAll)
+				animes.GET("/latest", animeHandler.GetLatest)
+				animes.GET("/type/:type", animeHandler.GetByType)
+				animes.GET("/search", animeHandler.Search)
+				animes.POST("", animeHandler.Create)
+				animes.GET("/:id", animeHandler.GetByID)
+				animes.PUT("/:id", animeHandler.Update)
+				animes.DELETE("/:id", animeHandler.Delete)
+			}
+
+			// Episode Routes
+			episodes := protected.Group("/episodes")
+			{
+				episodes.GET("", episodeHandler.GetAll)
+				episodes.GET("/latest", episodeHandler.GetLatest)
+				episodes.GET("/search", episodeHandler.Search)
+				episodes.POST("", episodeHandler.Create)
+				episodes.GET("/:id", episodeHandler.GetByID)
+				episodes.PUT("/:id", episodeHandler.Update)
+				episodes.DELETE("/:id", episodeHandler.Delete)
+			}
+
+			// Watch Later Routes
+			watchLater := protected.Group("/watch-later")
+			{
+				watchLater.POST("", watchLaterHandler.Toggle)
+				watchLater.GET("", watchLaterHandler.GetByUser)
+				watchLater.GET("/check", watchLaterHandler.CheckStatus)
+			}
+
+			// History Routes
+			history := protected.Group("/history")
+			{
+				history.GET("", historyHandler.GetHistory)
+				history.DELETE("", historyHandler.ClearHistory)
+				history.POST("/track-episode", historyHandler.TrackEpisodeView)
+				history.POST("/track-anime", historyHandler.TrackAnimeView)
+			}
+
+			api.POST("/export/sprint", exportHandler.GenerateSprint)
+			api.GET("/export/download/:filename", exportHandler.Download)
+
+			// Comments & Notifications
+			commentRepo := repository.NewCommentRepository(repo.DB())
+			notifRepo := repository.NewNotificationRepository(repo.DB())
+			commentHandler := handler.NewCommentHandler(commentRepo, notifRepo, historyService)
+			notifHandler := handler.NewNotificationHandler(notifRepo)
+
+			// Comment Routes
+			protected.POST("/episodes/:id/comments", commentHandler.Create)
+			protected.GET("/episodes/:id/comments", commentHandler.GetAllByEpisode)
+			protected.POST("/comments/:id/like", commentHandler.ToggleLike)
+			protected.PUT("/comments/:id", commentHandler.Update)
+			protected.DELETE("/comments/:id", commentHandler.Delete)
+
+			// Notification Routes
+			protected.GET("/notifications", notifHandler.GetUserNotifications)
+			protected.POST("/notifications/:id/read", notifHandler.MarkRead)
+			protected.POST("/notifications/read-all", notifHandler.MarkAllRead)
+		}
+	}
+
+	r.Use(func(c *gin.Context) {
+		log.Printf("Incoming: %s %s | Len: %d", c.Request.Method, c.Request.URL.Path, c.Request.ContentLength)
+		c.Next()
+	})
+
+	srv := &http.Server{
+		Addr:        ":" + cfg.Port,
+		Handler:     r,
+		ReadTimeout: 0, WriteTimeout: 0, IdleTimeout: 0,
+	}
+
+	log.Printf("Server running on port %s", cfg.Port)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatalf("Server failed: %v", err)
+	}
+}
