@@ -122,6 +122,7 @@ func main() {
 
 	r.Static("/uploads", "./uploads")
 	r.Static("/assets", "./dist/assets")
+	r.Static("/custom-emojis", "./emoji")
 	r.StaticFile("/favicon.ico", "./dist/favicon.ico")
 
 	// SPA Handler: Serve index.html for unknown routes (except /api)
