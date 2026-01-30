@@ -5,6 +5,7 @@ import (
 	"backend/internal/core/service"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +16,23 @@ type AnimeHandler struct {
 
 func NewAnimeHandler(service *service.AnimeService) *AnimeHandler {
 	return &AnimeHandler{service: service}
+}
+
+// sanitizeAnime removes the hardcoded localhost:8080 prefix from image URLs
+// This fixes Mixed Content errors when serving over HTTPS
+func (h *AnimeHandler) sanitizeAnime(a *domain.Anime) {
+	if a == nil {
+		return
+	}
+	a.Image = strings.ReplaceAll(a.Image, "http://localhost:8080", "")
+	a.Cover = strings.ReplaceAll(a.Cover, "http://localhost:8080", "")
+	// Also sanitize relative paths if they don't start with / but should (optional safeguard)
+	if !strings.HasPrefix(a.Image, "http") && !strings.HasPrefix(a.Image, "/") && a.Image != "" {
+		a.Image = "/" + a.Image
+	}
+	if !strings.HasPrefix(a.Cover, "http") && !strings.HasPrefix(a.Cover, "/") && a.Cover != "" {
+		a.Cover = "/" + a.Cover
+	}
 }
 
 func (h *AnimeHandler) Create(c *gin.Context) {
@@ -29,6 +47,7 @@ func (h *AnimeHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.sanitizeAnime(createdAnime)
 	c.JSON(http.StatusCreated, createdAnime)
 }
 
@@ -37,6 +56,9 @@ func (h *AnimeHandler) GetAll(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	for i := range animes {
+		h.sanitizeAnime(&animes[i])
 	}
 	c.JSON(http.StatusOK, animes)
 }
@@ -48,6 +70,7 @@ func (h *AnimeHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Anime not found"})
 		return
 	}
+	h.sanitizeAnime(anime)
 	c.JSON(http.StatusOK, anime)
 }
 
@@ -65,6 +88,7 @@ func (h *AnimeHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.sanitizeAnime(updatedAnime)
 	c.JSON(http.StatusOK, updatedAnime)
 }
 
@@ -84,6 +108,9 @@ func (h *AnimeHandler) GetLatest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	for i := range animes {
+		h.sanitizeAnime(&animes[i])
+	}
 	c.JSON(http.StatusOK, animes)
 }
 
@@ -94,6 +121,9 @@ func (h *AnimeHandler) GetByType(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	for i := range animes {
+		h.sanitizeAnime(&animes[i])
 	}
 	c.JSON(http.StatusOK, animes)
 }
@@ -109,6 +139,9 @@ func (h *AnimeHandler) Search(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	for i := range animes {
+		h.sanitizeAnime(&animes[i])
 	}
 	c.JSON(http.StatusOK, animes)
 }

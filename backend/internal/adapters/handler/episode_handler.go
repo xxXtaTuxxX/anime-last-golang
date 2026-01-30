@@ -5,6 +5,7 @@ import (
 	"backend/internal/core/service"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,24 @@ func NewEpisodeHandler(service *service.EpisodeService) *EpisodeHandler {
 	return &EpisodeHandler{service: service}
 }
 
+// sanitizeEpisode removes the hardcoded localhost:8080 prefix from image URLs
+func (h *EpisodeHandler) sanitizeEpisode(e *domain.Episode) {
+	if e == nil {
+		return
+	}
+	e.Thumbnail = strings.ReplaceAll(e.Thumbnail, "http://localhost:8080", "")
+	e.Banner = strings.ReplaceAll(e.Banner, "http://localhost:8080", "")
+	// Also sanitize relative paths if they don't start with / but should
+	if !strings.HasPrefix(e.Thumbnail, "http") && !strings.HasPrefix(e.Thumbnail, "/") && e.Thumbnail != "" {
+		e.Thumbnail = "/" + e.Thumbnail
+	}
+	if !strings.HasPrefix(e.Banner, "http") && !strings.HasPrefix(e.Banner, "/") && e.Banner != "" {
+		e.Banner = "/" + e.Banner
+	}
+	// Note: VideoURLs are JSON strings or external links, usually better left alone or parsed carefully if needed.
+	// Assuming VideoURLs are usually external embeds or handled separately.
+}
+
 func (h *EpisodeHandler) Create(c *gin.Context) {
 	var episode domain.Episode
 	if err := c.ShouldBindJSON(&episode); err != nil {
@@ -27,6 +46,7 @@ func (h *EpisodeHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.sanitizeEpisode(&episode)
 	c.JSON(http.StatusCreated, episode)
 }
 
@@ -60,6 +80,7 @@ func (h *EpisodeHandler) GetAll(c *gin.Context) {
 			// Find the specific episode
 			for _, ep := range episodes {
 				if ep.EpisodeNumber == episodeNum {
+					h.sanitizeEpisode(&ep)
 					c.JSON(http.StatusOK, []domain.Episode{ep})
 					return
 				}
@@ -68,6 +89,9 @@ func (h *EpisodeHandler) GetAll(c *gin.Context) {
 			return
 		}
 
+		for i := range episodes {
+			h.sanitizeEpisode(&episodes[i])
+		}
 		c.JSON(http.StatusOK, episodes)
 		return
 	}
@@ -77,6 +101,9 @@ func (h *EpisodeHandler) GetAll(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	for i := range episodes {
+		h.sanitizeEpisode(&episodes[i])
 	}
 	c.JSON(http.StatusOK, episodes)
 }
@@ -88,6 +115,7 @@ func (h *EpisodeHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Episode not found"})
 		return
 	}
+	h.sanitizeEpisode(episode)
 	c.JSON(http.StatusOK, episode)
 }
 
@@ -107,6 +135,7 @@ func (h *EpisodeHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.sanitizeEpisode(&episode)
 	c.JSON(http.StatusOK, episode)
 }
 
@@ -126,6 +155,9 @@ func (h *EpisodeHandler) GetLatest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	for i := range episodes {
+		h.sanitizeEpisode(&episodes[i])
+	}
 	c.JSON(http.StatusOK, episodes)
 }
 
@@ -140,6 +172,9 @@ func (h *EpisodeHandler) Search(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	for i := range episodes {
+		h.sanitizeEpisode(&episodes[i])
 	}
 	c.JSON(http.StatusOK, episodes)
 }
