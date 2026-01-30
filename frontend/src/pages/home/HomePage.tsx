@@ -198,7 +198,7 @@ export default function HomePage() {
                             <UnifiedModelViewer
                                 url={getModelUrl(selectedModel.path)}
                                 type={selectedModel.type}
-                                showGrid={true}
+                                // showGrid={true}
                                 showSkeleton={selectedModel.type === 'bvh'}
                                 isPlaying={true}
                                 interactive={true}

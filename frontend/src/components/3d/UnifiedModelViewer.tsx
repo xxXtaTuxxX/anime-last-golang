@@ -7,7 +7,7 @@ import {
     useProgress,
     Grid,
     TransformControls,
-    center,
+    Center,
 } from "@react-three/drei";
 import * as THREE from "three";
 import { FBXLoader, GLTFLoader, SkeletonUtils, BVHLoader } from "three-stdlib";

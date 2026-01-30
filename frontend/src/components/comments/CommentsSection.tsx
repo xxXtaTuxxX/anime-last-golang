@@ -27,7 +27,7 @@ interface Comment {
     dislikes: number;
     user_interaction?: boolean | null;
     children?: Comment[]; // For nested replies
-    episode_id: number;
+    episode_id?: number;
 }
 
 export const CommentsSection: React.FC<CommentsSectionProps> = ({ episodeId }) => {

@@ -88,7 +88,7 @@ export default function HistoryItem({ item, lang }: HistoryItemProps) {
         const anime = isEpisode ? item.episode!.anime : item.anime!;
 
         // Logic matching CardItem in AnimeBrowsePage
-        const image = isEpisode ? ((entity as any).banner || (entity as any).image || anime?.cover) : (entity.image || entity.cover);
+        const image = isEpisode ? ((entity as any).banner || (entity as any).image || anime?.cover) : ((entity as any).image || (entity as any).cover);
         const titleRaw = lang === 'ar' ? (entity.title || anime?.title) : ((entity as any).title_en || anime?.title_en || entity.title);
 
         const displayTitle = titleRaw || (lang === 'ar' ? 'عنوان غير متوفر' : 'Title Not Available');
@@ -97,7 +97,7 @@ export default function HistoryItem({ item, lang }: HistoryItemProps) {
             ? (lang === 'ar' ? `الحلقة ${(entity as any).episode_number}` : `Episode ${(entity as any).episode_number}`)
             : (lang === 'ar' ? 'مسلسل' : 'Anime');
 
-        const link = isEpisode ? `/${lang}/watch/${entity.anime_id}/${(entity as any).episode_number}` : `/${lang}/animes/${entity.id}`;
+        const link = isEpisode ? `/${lang}/watch/${(entity as any).anime_id}/${(entity as any).episode_number}` : `/${lang}/animes/${entity.id}`;
 
         return (
             <div
