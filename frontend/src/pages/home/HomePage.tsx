@@ -72,7 +72,7 @@ export default function HomePage() {
         });
 
         // Client-side filtering as a fallback (or primary mechanism if backend ignores params)
-        const items = allModels?.filter((m: any) => normalizeCategory(m.category) === category) || [];
+        const items = Array.isArray(allModels) ? allModels.filter((m: any) => normalizeCategory(m.category) === category) : [];
 
         // Show loading if query is expected but running, OR if we haven't intersected yet (skeleton placeholder)
         const isLoading = !hasIntersected || isQueryLoading;
