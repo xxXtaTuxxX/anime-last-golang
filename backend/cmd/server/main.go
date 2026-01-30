@@ -129,6 +129,11 @@ func main() {
 			auth.POST("/refresh", authHandler.Refresh)
 		}
 
+		// Health Check
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
