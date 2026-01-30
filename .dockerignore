@@ -3,6 +3,7 @@ dist
 .git
 .env
 uploads
+backend/cmd/server/uploads
 emoji
 coverage
 *.log
