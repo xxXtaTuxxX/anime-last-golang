@@ -4,6 +4,6 @@ dist
 .env
 # uploads
 # backend/cmd/server/uploads
-emoji
+# emoji
 coverage
 *.log

@@ -31,6 +31,8 @@ COPY --from=backend /app/server .
 COPY --from=frontend /app/dist ./dist
 # Copy seed uploads (ensure this directory exists in source)
 COPY --from=backend /app/uploads ./uploads
+# Copy emoji directory
+COPY emoji ./emoji
 # Create uploads directory (ensure permissions)
 RUN mkdir -p uploads && chmod 777 uploads
 
