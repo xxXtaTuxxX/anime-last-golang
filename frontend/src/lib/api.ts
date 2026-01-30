@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/stores/auth-store';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8080/api', // Env variable in real app
+    baseURL: import.meta.env.VITE_API_URL || '/api',
     withCredentials: true, // Important for cookies
 });
 

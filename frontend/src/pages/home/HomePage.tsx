@@ -16,7 +16,7 @@ import {
 import UnifiedModelViewer from "@/components/3d/UnifiedModelViewer";
 import CrunchyrollSkeleton from "@/components/skeleton/CrunchyrollSkeleton";
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const getModelUrl = (path: string) => {
     if (!path) return '';

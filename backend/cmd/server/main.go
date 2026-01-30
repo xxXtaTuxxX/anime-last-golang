@@ -92,6 +92,17 @@ func main() {
 	}))
 
 	r.Static("/uploads", "./uploads")
+	r.Static("/assets", "./dist/assets")
+	r.StaticFile("/favicon.ico", "./dist/favicon.ico")
+
+	// SPA Handler: Serve index.html for unknown routes (except /api)
+	r.NoRoute(func(c *gin.Context) {
+		if !strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.File("./dist/index.html")
+		} else {
+			c.JSON(404, gin.H{"error": "API route not found"})
+		}
+	})
 
 	api := r.Group("/api")
 	{
