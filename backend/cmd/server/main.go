@@ -76,6 +76,12 @@ func main() {
 	watchLaterHandler := handler.NewWatchLaterHandler(watchLaterService)
 	historyHandler := handler.NewHistoryHandler(historyService)
 
+	// Comments & Notifications Handlers
+	commentRepo := repository.NewCommentRepository(repo.DB())
+	notifRepo := repository.NewNotificationRepository(repo.DB())
+	commentHandler := handler.NewCommentHandler(commentRepo, notifRepo, historyService)
+	notifHandler := handler.NewNotificationHandler(notifRepo)
+
 	r := gin.Default()
 	r.MaxMultipartMemory = 1024 << 20 // 1GB
 
@@ -134,6 +140,52 @@ func main() {
 			c.JSON(200, gin.H{"status": "ok"})
 		})
 
+		// --- Public Routes (No Auth Required) ---
+		public := api.Group("/")
+		{
+			// General Search
+			public.GET("/search", searchHandler.Search)
+
+			// Anime Public (Read-Only)
+			animes := public.Group("/animes")
+			{
+				animes.GET("", animeHandler.GetAll)
+				animes.GET("/latest", animeHandler.GetLatest)
+				animes.GET("/type/:type", animeHandler.GetByType)
+				animes.GET("/search", animeHandler.Search)
+				animes.GET("/:id", animeHandler.GetByID)
+			}
+
+			// Episode Public (Read-Only)
+			episodes := public.Group("/episodes")
+			{
+				episodes.GET("", episodeHandler.GetAll)
+				episodes.GET("/latest", episodeHandler.GetLatest)
+				episodes.GET("/search", episodeHandler.Search)
+				episodes.GET("/:id", episodeHandler.GetByID)
+			}
+
+			// Models Public
+			models := public.Group("/models")
+			models.GET("", modelHandler.GetAll)
+			models.GET("/:id/download", modelHandler.Download)
+
+			// Other Public Read-Only
+			public.Group("/categories").GET("", categoryHandler.GetAll)
+			public.Group("/types").GET("", typeHandler.GetAll)
+			public.Group("/seasons").GET("", seasonHandler.GetAll)
+			public.Group("/studios").GET("", studioHandler.GetAll)
+			public.Group("/languages").GET("", languageHandler.GetAll)
+
+			// Public export download
+			public.POST("/export/sprint", exportHandler.GenerateSprint)
+			public.GET("/export/download/:filename", exportHandler.Download)
+
+			// Public Comments (Read-only)
+			public.GET("/episodes/:id/comments", commentHandler.GetAllByEpisode)
+		}
+
+		// --- Protected Routes (Auth Required) ---
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
@@ -143,49 +195,34 @@ func main() {
 				c.JSON(200, gin.H{"id": userID, "role": role})
 			})
 
-			// Routes (Grouped for brevity, matching previous structure)
+			// Admin/Protected Routes
 			protected.Group("/users").GET("", userHandler.GetAll).POST("", userHandler.Create).PUT("/:id", userHandler.Update).DELETE("/:id", userHandler.Delete)
 			protected.Group("/roles").GET("", roleHandler.GetAll).POST("", roleHandler.Create).PUT("/:id", roleHandler.Update).DELETE("/:id", roleHandler.Delete)
 			protected.Group("/permissions").GET("", permHandler.GetAll).POST("", permHandler.Create).PUT("/:id", permHandler.Update).DELETE("/:id", permHandler.Delete)
-			protected.GET("/search", searchHandler.Search)
+			// protected.GET("/search", searchHandler.Search) // Search is public now
 
+			// Write/Delete Operations for Models
 			models := protected.Group("/models")
-			models.GET("", modelHandler.GetAll).POST("", modelHandler.Upload).PUT("/:id", modelHandler.Update).DELETE("/:id", modelHandler.Delete).GET("/:id/download", modelHandler.Download)
+			models.POST("", modelHandler.Upload).PUT("/:id", modelHandler.Update).DELETE("/:id", modelHandler.Delete)
 
 			protected.POST("/upload", uploadHandler.UploadFile)
 
-			protected.Group("/categories").GET("", categoryHandler.GetAll).POST("", categoryHandler.Create).PUT("/:id", categoryHandler.Update).DELETE("/:id", categoryHandler.Delete)
-			protected.Group("/types").GET("", typeHandler.GetAll).POST("", typeHandler.Create).PUT("/:id", typeHandler.Update).DELETE("/:id", typeHandler.Delete)
-			protected.Group("/seasons").GET("", seasonHandler.GetAll).POST("", seasonHandler.Create).PUT("/:id", seasonHandler.Update).DELETE("/:id", seasonHandler.Delete)
-			protected.Group("/studios").GET("", studioHandler.GetAll).POST("", studioHandler.Create).PUT("/:id", studioHandler.Update).DELETE("/:id", studioHandler.Delete)
-			protected.Group("/languages").GET("", languageHandler.GetAll).POST("", languageHandler.Create).PUT("/:id", languageHandler.Update).DELETE("/:id", languageHandler.Delete)
+			// Write Operations for Metadata
+			protected.Group("/categories").POST("", categoryHandler.Create).PUT("/:id", categoryHandler.Update).DELETE("/:id", categoryHandler.Delete)
+			protected.Group("/types").POST("", typeHandler.Create).PUT("/:id", typeHandler.Update).DELETE("/:id", typeHandler.Delete)
+			protected.Group("/seasons").POST("", seasonHandler.Create).PUT("/:id", seasonHandler.Update).DELETE("/:id", seasonHandler.Delete)
+			protected.Group("/studios").POST("", studioHandler.Create).PUT("/:id", studioHandler.Update).DELETE("/:id", studioHandler.Delete)
+			protected.Group("/languages").POST("", languageHandler.Create).PUT("/:id", languageHandler.Update).DELETE("/:id", languageHandler.Delete)
 
-			// Anime Routes
+			// Write Operations for Anime
 			animes := protected.Group("/animes")
-			{
-				animes.GET("", animeHandler.GetAll)
-				animes.GET("/latest", animeHandler.GetLatest)
-				animes.GET("/type/:type", animeHandler.GetByType)
-				animes.GET("/search", animeHandler.Search)
-				animes.POST("", animeHandler.Create)
-				animes.GET("/:id", animeHandler.GetByID)
-				animes.PUT("/:id", animeHandler.Update)
-				animes.DELETE("/:id", animeHandler.Delete)
-			}
+			animes.POST("", animeHandler.Create).PUT("/:id", animeHandler.Update).DELETE("/:id", animeHandler.Delete)
 
-			// Episode Routes
+			// Write Operations for Episodes
 			episodes := protected.Group("/episodes")
-			{
-				episodes.GET("", episodeHandler.GetAll)
-				episodes.GET("/latest", episodeHandler.GetLatest)
-				episodes.GET("/search", episodeHandler.Search)
-				episodes.POST("", episodeHandler.Create)
-				episodes.GET("/:id", episodeHandler.GetByID)
-				episodes.PUT("/:id", episodeHandler.Update)
-				episodes.DELETE("/:id", episodeHandler.Delete)
-			}
+			episodes.POST("", episodeHandler.Create).PUT("/:id", episodeHandler.Update).DELETE("/:id", episodeHandler.Delete)
 
-			// Watch Later Routes
+			// Watch Later Routes (Personal)
 			watchLater := protected.Group("/watch-later")
 			{
 				watchLater.POST("", watchLaterHandler.Toggle)
@@ -193,7 +230,7 @@ func main() {
 				watchLater.GET("/check", watchLaterHandler.CheckStatus)
 			}
 
-			// History Routes
+			// History Routes (Personal)
 			history := protected.Group("/history")
 			{
 				history.GET("", historyHandler.GetHistory)
@@ -202,23 +239,13 @@ func main() {
 				history.POST("/track-anime", historyHandler.TrackAnimeView)
 			}
 
-			api.POST("/export/sprint", exportHandler.GenerateSprint)
-			api.GET("/export/download/:filename", exportHandler.Download)
-
-			// Comments & Notifications
-			commentRepo := repository.NewCommentRepository(repo.DB())
-			notifRepo := repository.NewNotificationRepository(repo.DB())
-			commentHandler := handler.NewCommentHandler(commentRepo, notifRepo, historyService)
-			notifHandler := handler.NewNotificationHandler(notifRepo)
-
-			// Comment Routes
+			// Comment Write Operations
 			protected.POST("/episodes/:id/comments", commentHandler.Create)
-			protected.GET("/episodes/:id/comments", commentHandler.GetAllByEpisode)
 			protected.POST("/comments/:id/like", commentHandler.ToggleLike)
 			protected.PUT("/comments/:id", commentHandler.Update)
 			protected.DELETE("/comments/:id", commentHandler.Delete)
 
-			// Notification Routes
+			// Notification Routes (Personal)
 			protected.GET("/notifications", notifHandler.GetUserNotifications)
 			protected.POST("/notifications/:id/read", notifHandler.MarkRead)
 			protected.POST("/notifications/read-all", notifHandler.MarkAllRead)
