@@ -6,6 +6,7 @@ import (
 	"backend/internal/adapters/repository"
 	"backend/internal/core/service"
 	"backend/internal/middleware"
+	"backend/internal/migration"
 	"backend/internal/seeder"
 	"log"
 	"net/http"
@@ -36,6 +37,12 @@ func main() {
 	if isNewDB {
 		log.Println("New database detected. Running auto-seeding...")
 		seeder.SeedAll(repo.DB())
+	}
+
+	// ALWAYS run localhost cleanup migration (safe to run multiple times)
+	log.Println("Running localhost URL cleanup migration...")
+	if err := migration.CleanLocalhostURLs(repo.DB()); err != nil {
+		log.Printf("Warning: Failed to clean localhost URLs: %v", err)
 	}
 
 	// Services
