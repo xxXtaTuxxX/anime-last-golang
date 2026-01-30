@@ -11,7 +11,7 @@ import HistorySkeleton from '@/components/skeleton/HistorySkeleton';
 import HistoryItem from '@/components/HistoryItem';
 
 // Helper for image URLs
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = '';
 const getImageUrl = (path?: string | null) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;

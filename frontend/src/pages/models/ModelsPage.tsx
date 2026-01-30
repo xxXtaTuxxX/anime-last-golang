@@ -31,7 +31,7 @@ import {
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateBlurPlaceholder, renameFile } from "@/utils/image-utils";
 
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = "";
 
 // --- Lazy Loader Wrapper ---
 interface LazyModelViewerProps extends UnifiedModelViewerProps {

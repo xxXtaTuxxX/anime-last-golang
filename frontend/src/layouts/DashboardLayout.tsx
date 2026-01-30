@@ -152,7 +152,7 @@ export function DashboardLayout() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user?.avatar ? `http://localhost:8080${user.avatar}` : ""} className="object-cover" />
+                                        <AvatarImage src={user?.avatar ? `${user.avatar}` : ""} className="object-cover" />
                                         <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
                                     </Avatar>
                                 </Button>

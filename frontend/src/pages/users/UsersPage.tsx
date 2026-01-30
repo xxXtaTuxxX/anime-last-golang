@@ -133,7 +133,7 @@ export default function UsersPage() {
                                     <TableRow key={user.id}>
                                         <TableCell>
                                             <Avatar>
-                                                <AvatarImage src={user.avatar ? `http://localhost:8080${user.avatar}` : ""} className="object-cover" />
+                                                <AvatarImage src={user.avatar ? `${user.avatar}` : ""} className="object-cover" />
                                                 <AvatarFallback>{user.name[0]}</AvatarFallback>
                                             </Avatar>
                                         </TableCell>

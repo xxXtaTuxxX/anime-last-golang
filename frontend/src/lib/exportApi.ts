@@ -55,7 +55,7 @@ export async function exportCharacterWithAnimation(
  * Download exported file
  */
 export function downloadExport(filename: string): string {
-    return `http://localhost:8080/api/export/download/${filename}`;
+    return `/api/export/download/${filename}`;
 }
 
 // Auto Rig function

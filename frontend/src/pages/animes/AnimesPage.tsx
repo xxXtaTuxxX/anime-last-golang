@@ -322,7 +322,7 @@ export default function AnimesPage() {
                                     <TableCell className="font-medium">{anime.id}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            {anime.image && <img src={`http://localhost:8080${anime.image}`} alt={anime.title} className="w-8 h-8 rounded object-cover" />}
+                                            {anime.image && <img src={anime.image} alt={anime.title} className="w-8 h-8 rounded object-cover" />}
                                             <div className="flex flex-col">
                                                 <span>{anime.title}</span>
                                                 <span className="text-xs text-muted-foreground">{anime.title_en}</span>
@@ -479,7 +479,7 @@ function AnimeFormContent({
                                 <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'image')} disabled={uploadingImage} />
                                 {uploadingImage && <span className="text-xs text-muted-foreground">Uploading...</span>}
                             </div>
-                            {formData.image && <img src={`http://localhost:8080${formData.image}`} alt="Poster" className="h-20 w-auto object-cover rounded mt-2 border" />}
+                            {formData.image && <img src={formData.image} alt="Poster" className="h-20 w-auto object-cover rounded mt-2 border" />}
                         </div>
                         <div className="grid gap-2">
                             <Label>Banner Image</Label>
@@ -487,7 +487,7 @@ function AnimeFormContent({
                                 <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'cover')} disabled={uploadingCover} />
                                 {uploadingCover && <span className="text-xs text-muted-foreground">Uploading...</span>}
                             </div>
-                            {formData.cover && <img src={`http://localhost:8080${formData.cover}`} alt="Banner" className="h-20 w-auto object-cover rounded mt-2 border" />}
+                            {formData.cover && <img src={formData.cover} alt="Banner" className="h-20 w-auto object-cover rounded mt-2 border" />}
                         </div>
                         <div className="grid gap-2">
                             <Label>Trailer URL</Label>

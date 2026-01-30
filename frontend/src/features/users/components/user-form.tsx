@@ -67,7 +67,7 @@ export function UserForm({ open, onOpenChange, user }: UserFormProps) {
                 password: "",
                 role: user?.role?.name || "User",
             });
-            setPreview(user?.avatar ? `http://localhost:8080${user.avatar}` : null);
+            setPreview(user?.avatar ? `${user.avatar}` : null);
         }
     }, [user, open, form]);
 

@@ -444,7 +444,7 @@ export default function ModelViewerPage() {
             // Get the current animation file
             // We need to fetch the animation file from the main model
             const animationPath = modelData.path.replace(/\\/g, "/");
-            const animationUrl = `http://localhost:8080/${animationPath}`;
+            const animationUrl = `/${animationPath}`;
 
             // Fetch animation file
             const animResponse = await fetch(animationUrl);
@@ -547,7 +547,7 @@ export default function ModelViewerPage() {
         );
     }
 
-    const modelUrl = `http://localhost:8080/${modelData.path.replace(/\\/g, "/")}`;
+    const modelUrl = `/${modelData.path.replace(/\\/g, "/")}`;
 
     return (
         <div className="relative h-[calc(100vh-4rem)] w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white overflow-hidden">
@@ -774,7 +774,7 @@ export default function ModelViewerPage() {
 
                                         // 3. Update Preview to show the result
                                         setExportResult(result); // Enable download
-                                        setPreviewUrl(`http://localhost:8080${result.download_url}`); // Update View
+                                        setPreviewUrl(`${result.download_url}`); // Update View
 
                                         toast.success("Auto-Rig Logic Applied! Preview updated. 🎭");
                                     } catch (e) {
@@ -798,7 +798,7 @@ export default function ModelViewerPage() {
                                     try {
                                         const m = await import("@/lib/exportApi");
                                         const result = await m.generateSprintAnimation(previewFile);
-                                        window.open(`http://localhost:8080/api/export/download/${result.filename}`, '_blank');
+                                        window.open(`/api/export/download/${result.filename}`, '_blank');
                                         toast.success("Sprint Added! Downloading...");
                                     } catch (e) {
                                         toast.error("Sprint Generation failed");

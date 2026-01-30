@@ -403,7 +403,7 @@ export default function EpisodesPage() {
                                     <TableCell className="font-medium">{ep.id}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            {ep.thumbnail && <img src={`http://localhost:8080${ep.thumbnail}`} alt={ep.title} className="w-8 h-8 rounded object-cover" />}
+                                            {ep.thumbnail && <img src={ep.thumbnail} alt={ep.title} className="w-8 h-8 rounded object-cover" />}
                                             <div className="flex flex-col">
                                                 <span>{ep.episode_number} - {ep.title}</span>
                                             </div>
@@ -588,7 +588,7 @@ function EpisodeFormContent({
                                 <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'thumbnail')} disabled={isUploading.thumbnail} />
                                 {isUploading.thumbnail && <span className="text-xs text-muted-foreground">Uploading...</span>}
                             </div>
-                            {formData.thumbnail && <img src={`http://localhost:8080${formData.thumbnail}`} alt="Thumbnail" className="h-20 w-auto object-cover rounded mt-2 border" />}
+                            {formData.thumbnail && <img src={formData.thumbnail} alt="Thumbnail" className="h-20 w-auto object-cover rounded mt-2 border" />}
                         </div>
                         <div className="grid gap-2">
                             <Label>Banner</Label>
@@ -596,7 +596,7 @@ function EpisodeFormContent({
                                 <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} disabled={isUploading.banner} />
                                 {isUploading.banner && <span className="text-xs text-muted-foreground">Uploading...</span>}
                             </div>
-                            {formData.banner && <img src={`http://localhost:8080${formData.banner}`} alt="Banner" className="h-20 w-auto object-cover rounded mt-2 border" />}
+                            {formData.banner && <img src={formData.banner} alt="Banner" className="h-20 w-auto object-cover rounded mt-2 border" />}
                         </div>
                     </TabsContent>
 

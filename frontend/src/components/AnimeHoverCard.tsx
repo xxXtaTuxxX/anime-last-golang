@@ -9,7 +9,7 @@ interface AnimeHoverCardProps {
     onMouseLeave?: () => void;
 }
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = '';
 
 const getImageUrl = (path: string) => {
     if (!path) return '';
