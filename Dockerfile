@@ -29,8 +29,10 @@ RUN apk add --no-cache sqlite-libs ca-certificates
 COPY --from=backend /app/server .
 # Copy built frontend assets
 COPY --from=frontend /app/dist ./dist
-# Create uploads directory (Must be mounted as volume in Railway)
-RUN mkdir -p uploads
+# Copy seed uploads (ensure this directory exists in source)
+COPY --from=backend /app/uploads ./uploads
+# Create uploads directory (ensure permissions)
+RUN mkdir -p uploads && chmod 777 uploads
 
 # Environment setup
 ENV PORT=8080
