@@ -80,7 +80,11 @@ func main() {
 	r.MaxMultipartMemory = 1024 << 20 // 1GB
 
 	// CORS
-	allowOrigins := strings.Split(cfg.AllowOrigins, ",")
+	rawOrigins := strings.Split(cfg.AllowOrigins, ",")
+	var allowOrigins []string
+	for _, o := range rawOrigins {
+		allowOrigins = append(allowOrigins, strings.TrimSpace(o))
+	}
 	log.Printf("CORS: Allowing origins: %v", allowOrigins)
 
 	r.Use(cors.New(cors.Config{
