@@ -140,6 +140,10 @@ func main() {
 			c.JSON(200, gin.H{"status": "ok"})
 		})
 
+		// Version Check (for deployment verification)
+		versionHandler := handler.NewVersionHandler()
+		api.GET("/version", versionHandler.GetVersion)
+
 		// --- Public Routes (No Auth Required) ---
 		public := api.Group("/")
 		{
