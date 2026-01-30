@@ -79,21 +79,33 @@ func main() {
 	r := gin.Default()
 	r.MaxMultipartMemory = 1024 << 20 // 1GB
 
-	// CORS
-	rawOrigins := strings.Split(cfg.AllowOrigins, ",")
-	var allowOrigins []string
-	for _, o := range rawOrigins {
-		allowOrigins = append(allowOrigins, strings.TrimSpace(o))
-	}
-	log.Printf("CORS: Allowing origins: %v", allowOrigins)
-
+	// CORS Setup - PERMISSIVE MODE (Fix for network access)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowOrigins,
+		// AllowAllOrigins: true, // CANNOT use '*' with AllowCredentials: true
+		AllowOriginFunc:  func(origin string) bool { return true }, // Echoes the exact origin back
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	/*
+		// Specific CORS (Commented out for now)
+		rawOrigins := strings.Split(cfg.AllowOrigins, ",")
+		var allowOrigins []string
+		for _, o := range rawOrigins {
+			allowOrigins = append(allowOrigins, strings.TrimSpace(o))
+		}
+		log.Printf("CORS: Allowing origins: %v", allowOrigins)
+
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     allowOrigins,
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+		}))
+	*/
 
 	r.Static("/uploads", "./uploads")
 	r.Static("/assets", "./dist/assets")

@@ -24,7 +24,13 @@ func LoadConfig() (*Config, error) {
 	// Load .env file if exists
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Printf("Error loading .env file: %v\n", err)
+		// Try loading from root if running from cmd/server
+		err = godotenv.Load("../../.env")
+		if err != nil {
+			fmt.Printf("Error loading .env file: %v\n", err)
+		} else {
+			fmt.Println(".env file loaded successfully from ../../.env")
+		}
 	} else {
 		fmt.Println(".env file loaded successfully")
 	}
@@ -64,7 +70,7 @@ func LoadConfig() (*Config, error) {
 
 	allowOrigins := os.Getenv("ALLOW_ORIGINS")
 	if allowOrigins == "" {
-		allowOrigins = "http://localhost:5173"
+		allowOrigins = "http://localhost:5173,http://localhost:3000,http://192.168.0.105:3000"
 	}
 
 	meshyKey := os.Getenv("MESHY_API_KEY")

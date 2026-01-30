@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import api from "@/lib/api"
 import { useAuthStore } from "@/stores/auth-store"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
     const navigate = useNavigate()
+    const { i18n } = useTranslation()
     const setAccessToken = useAuthStore((state) => state.setAccessToken)
     const setUser = useAuthStore((state) => state.setUser)
     const [isLoading, setIsLoading] = useState(false)
@@ -45,7 +47,10 @@ export function LoginForm() {
             setAccessToken(response.data.access_token)
             setUser(response.data.user)
             toast.success("Logged in successfully")
-            navigate("/")
+
+            // Use hard redirect to ensure fresh state and bypass router issues
+            const targetLang = i18n.language || 'en';
+            window.location.assign(`/${targetLang}`);
         } catch (error: any) {
             if (error.response?.status === 401) {
                 toast.error("Invalid email or password");
