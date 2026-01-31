@@ -113,10 +113,10 @@ export default function EditProfilePage() {
                     <div className="relative inline-block">
                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#111] bg-[#222] relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
                             {avatarPreview ? (
-                                <img src={avatarPreview} alt={user.name} className="w-full h-full object-cover" />
+                                <img src={avatarPreview} alt={user?.name || 'User'} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-gray-500">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {user?.name?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                             )}
                             {/* Hover Overlay */}
@@ -146,7 +146,7 @@ export default function EditProfilePage() {
 
                     {/* Name Display / Info - Static Header */}
                     <div className="text-center space-y-1">
-                        <h2 className="text-2xl font-bold text-white">{user.name}</h2>
+                        <h2 className="text-2xl font-bold text-white">{user?.name || 'User'}</h2>
                     </div>
 
                     <div className="border-t border-[#222] my-6"></div>
