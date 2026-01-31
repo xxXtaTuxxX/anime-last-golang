@@ -79,7 +79,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0, on
     const getAvatarUrl = (avatar?: string) => {
         if (!avatar) return '';
         if (avatar.startsWith('http')) return avatar;
-        return `${(import.meta as any).env.VITE_API_URL}/uploads/${avatar}`; // Adjust based on your serving logic
+        return avatar.startsWith('/') ? avatar : `/${avatar}`;
     };
 
     // Render content with custom emojis
@@ -91,7 +91,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, depth = 0, on
         return parts.map((part, index) => {
             const match = part.match(/!\[emoji\]\((.*?\.(?:png|jpg|jpeg))\)/);
             if (match) {
-                const emojiUrl = match[1];
+                const emojiUrl = match[1].replace('/storage/', '/');
                 console.log('Matched emoji URL:', emojiUrl);
                 return (
                     <img

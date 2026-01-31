@@ -30,6 +30,10 @@ import { LanguageWrapper } from '@/components/LanguageWrapper';
 import { RedirectToDefaultLang } from '@/components/RedirectToDefaultLang';
 import { RootRedirect } from '@/components/RootRedirect';
 import ScrollToTop from '@/components/ScrollToTop';
+import { UserControlPanelLayout } from '@/layouts/UserControlPanelLayout';
+import UserInfoPage from '@/pages/user-dashboard/UserInfoPage';
+import EditProfilePage from '@/pages/user-dashboard/EditProfilePage';
+import UserSettingsPage from '@/pages/user-dashboard/UserSettingsPage';
 
 export const router = createBrowserRouter([
     {
@@ -115,7 +119,26 @@ export const router = createBrowserRouter([
                             },
                         ],
                     },
-                    // Dashboard Route
+                    // User Dashboard Route (Control Panel) - /my/dashboard
+                    {
+                        path: 'my/dashboard',
+                        element: <UserControlPanelLayout />,
+                        children: [
+                            {
+                                index: true,
+                                element: <UserInfoPage />,
+                            },
+                            {
+                                path: 'edit',
+                                element: <EditProfilePage />,
+                            },
+                            {
+                                path: 'settings',
+                                element: <UserSettingsPage />,
+                            },
+                        ]
+                    },
+                    // Admin Dashboard Route
                     {
                         path: 'dashboard',
                         element: <DashboardLayout />,

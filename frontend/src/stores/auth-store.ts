@@ -6,6 +6,7 @@ interface User {
     name: string;
     email: string;
     avatar?: string;
+    created_at?: string; // Added created_at
     role: {
         id: number;
         name: string;

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import {
     Play, Plus, Share2, Flag, Download, MessageSquare,
-    Globe, Clock, Eye, ChevronUp, ChevronLeft, Star, Filter
+    Globe, Clock, Eye, ChevronUp, ChevronLeft, Star, Filter, Library
 } from "lucide-react";
 import api from "@/lib/api";
 import CrunchyrollSkeleton from "@/components/skeleton/CrunchyrollSkeleton";
@@ -64,6 +64,17 @@ export default function WatchPage() {
     const [isEpisodesModalOpen, setIsEpisodesModalOpen] = useState(false);
     const activeEpisodeRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
+
+    // Mobile Expansion State
+    const [isEpisodesExpanded, setIsEpisodesExpanded] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024); // lg breakpoint is usually where sidebar moves
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Hover State
     const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
@@ -183,6 +194,25 @@ export default function WatchPage() {
         return episodesList.filter((ep: any) => Number(ep.anime_id) === Number(animeId));
     }, [episodesList, animeId]);
 
+    // Determine Current Episode
+    const currentEpisode = useMemo(() => {
+        if (!filteredEpisodes.length) return null;
+        return filteredEpisodes.find((ep: any) => ep.episode_number == episodeNum);
+    }, [filteredEpisodes, episodeNum]);
+
+    // Fetch Comments for Badge (Requires currentEpisode)
+    const { data: commentsData } = useQuery({
+        queryKey: ["comments", currentEpisode?.id],
+        queryFn: async () => {
+            if (!currentEpisode?.id) return [];
+            const response = await api.get(`/episodes/${currentEpisode.id}/comments`);
+            return response.data;
+        },
+        enabled: !!currentEpisode?.id,
+    });
+
+
+
     // Scroll to active episode when list loads or episode changes (List Scroll Only)
     useEffect(() => {
         // Wait for data to load
@@ -206,12 +236,6 @@ export default function WatchPage() {
 
         return () => clearTimeout(timer);
     }, [episodeNum, activeTab, filteredEpisodes, isQueryLoading, isEpisodesLoading]);
-
-    // Determine Current Episode
-    const currentEpisode = useMemo(() => {
-        if (!filteredEpisodes.length) return null;
-        return filteredEpisodes.find((ep: any) => ep.episode_number == episodeNum);
-    }, [filteredEpisodes, episodeNum]);
 
     // Video Source Logic with robust parsing moved to top level
     const servers = useMemo(() => {
@@ -289,14 +313,46 @@ export default function WatchPage() {
                 <title>{currentEpisode.title || `Episode ${currentEpisode.episode_number}`} - AnimeLast</title>
             </Helmet>
 
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 py-8 animate-fade-in">
-                <div className="grid items-start grid-cols-1 gap-4 md:gap-6 lg:grid-cols-12">
+            {/* Video Player - Outside container on mobile for edge-to-edge, inside on desktop */}
+            <div className="block md:hidden w-screen aspect-video bg-black overflow-hidden relative left-1/2 right-1/2 -mx-[50vw] -mt-8">
+                {videoUrl ? (
+                    <iframe
+                        src={videoUrl}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title="Video Player"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-gray-500">Video source unavailable</p>
+                    </div>
+                )}
+            </div>
+
+            <div className="max-w-[1600px] mx-auto px-0 md:px-8 py-0 md:py-8 animate-fade-in">
+                <div className="grid items-start grid-cols-1 gap-0 md:gap-4 lg:grid-cols-12">
 
                     {/* MAIN CONTENT (Player + Details) - lg:col-span-6 */}
-                    <div className="flex flex-col mt-2 lg:col-span-6 xl:col-span-6">
+                    <div className="flex flex-col mt-0 lg:col-span-6 xl:col-span-6">
 
-                        {/* Servers List (Mock) */}
-                        <div className="flex flex-col gap-3 mb-4">
+                        {/* Video Player - Desktop only */}
+                        <div className="hidden md:block w-full aspect-video bg-black overflow-hidden rounded-lg shadow-2xl mb-4 relative group">
+                            {videoUrl ? (
+                                <iframe
+                                    src={videoUrl}
+                                    className="w-full h-full"
+                                    allowFullScreen
+                                    title="Video Player"
+                                />
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <p className="text-gray-500">Video source unavailable</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Servers List (Below Player) */}
+                        <div className="flex flex-col gap-3 mb-4 px-2 md:px-0">
                             <h3 className="flex items-center gap-2 px-1 text-sm font-bold text-gray-900 dark:text-white">
                                 <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                 {lang === 'ar' ? 'سيرفرات المشاهدة' : 'Servers'}
@@ -322,31 +378,13 @@ export default function WatchPage() {
                                         <span className="text-xs text-red-400">
                                             {lang === 'ar' ? 'لا توجد سيرفرات متاحة' : 'No servers available'}
                                         </span>
-                                        {/* Debug info if needed */}
-                                        {/* <span className="text-[10px] text-gray-600">{currentEpisode?.video_urls}</span> */}
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Video Player */}
-                        <div className="w-full aspect-video bg-black overflow-hidden rounded-lg shadow-2xl mb-6 relative group">
-                            {videoUrl ? (
-                                <iframe
-                                    src={videoUrl}
-                                    className="w-full h-full"
-                                    allowFullScreen
-                                    title="Video Player"
-                                />
-                            ) : (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <p className="text-gray-500">Video source unavailable</p>
-                                </div>
-                            )}
-                        </div>
-
                         {/* Episode Details */}
-                        <div className="mb-6">
+                        <div className="mb-6 px-2 md:px-0">
                             <h1 className="text-2xl font-bold mb-2">
                                 {(lang === 'ar' ? currentEpisode.title : currentEpisode.title_en) || `Episode ${currentEpisode.episode_number}`}
                             </h1>
@@ -475,115 +513,146 @@ export default function WatchPage() {
 
 
                     {/* SIDEBAR (Episodes List) - lg:col-span-6 */}
+                    {/* SIDEBAR (Episodes List) - lg:col-span-6 */}
                     <div className="flex mt-1 flex-col gap-4 lg:col-span-6 xl:col-span-6 h-fit">
-                        {/* Tabs */}
-                        <div className="flex items-center bg-gray-100 dark:bg-black p-1  border-gray-200 dark:border-[#333]">
-                            <button
-                                onClick={() => setActiveTab('episodes')}
-                                className={`flex-1 py-2 text-sm font-bold transition-all ${activeTab === 'episodes' ? 'bg-[#f47521] text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                {lang === 'ar' ? 'حلقات المسلسل' : 'Episodes'}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('comments')}
-                                className={`flex-1 py-2 text-sm font-bold transition-all ${activeTab === 'comments' ? 'bg-[#f47521] text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                {lang === 'ar' ? 'التعليقات' : 'Comments'}
-                            </button>
-                        </div>
-
-                        {/* Filter Button */}
-                        {activeTab === 'episodes' && (
-                            <div className="flex items-center justify-end px-2">
+                        {/* Sticky Header Container (Mobile Only) */}
+                        <div className="sticky top-[60px] z-30 bg-white dark:bg-black md:static shadow-md md:shadow-none">
+                            {/* Tabs */}
+                            <div className="flex items-center bg-gray-100 dark:bg-black p-1 border-gray-200 dark:border-[#333]">
                                 <button
-                                    onClick={() => setIsEpisodesModalOpen(true)}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-[#222] hover:bg-gray-200 dark:hover:bg-[#1a1a1a] transition-colors"
-                                    title={lang === 'ar' ? 'بحث وفلترة الحلقات' : 'Search and filter episodes'}
+                                    onClick={() => setActiveTab('episodes')}
+                                    className={`flex-1 py-2 text-sm font-bold transition-all ${activeTab === 'episodes' ? 'bg-[#f47521] text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
                                 >
-                                    <Filter className="w-5 h-5" />
-                                    <span>{lang === 'ar' ? 'بحث' : 'Filter'}</span>
+                                    {lang === 'ar' ? 'حلقات المسلسل' : 'Episodes'}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('comments')}
+                                    className={`flex-1 py-2 text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'comments' ? 'bg-[#f47521] text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    {lang === 'ar' ? 'التعليقات' : 'Comments'}
+                                    {commentsData && commentsData.length > 0 && (
+                                        <span className="flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold text-white bg-red-600 rounded-full">
+                                            {commentsData.length}
+                                        </span>
+                                    )}
                                 </button>
                             </div>
-                        )}
+
+                            {/* Filter Button */}
+                            {activeTab === 'episodes' && (
+                                <div className="flex items-center justify-end px-2 py-2 bg-white dark:bg-black border-b border-gray-100 dark:border-[#222]">
+                                    <button
+                                        onClick={() => setIsEpisodesModalOpen(true)}
+                                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-[#222] hover:bg-gray-200 dark:hover:bg-[#1a1a1a] transition-colors"
+                                        title={lang === 'ar' ? 'بحث وفلترة الحلقات' : 'Search and filter episodes'}
+                                    >
+                                        <Filter className="w-5 h-5" />
+                                        <span>{lang === 'ar' ? 'بحث' : 'Filter'}</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Episodes List Content */}
                         {activeTab === 'episodes' && (
-                            <div ref={listRef} className="flex flex-col gap-2 h-[700px] overflow-y-auto pr-2 custom-scrollbar relative">
-                                {filteredEpisodes.map((ep: any) => (
-                                    <div
-                                        key={ep.id}
-                                        ref={Number(ep.episode_number) === Number(episodeNum) ? activeEpisodeRef : null}
-                                        onClick={() => navigate(`/${lang}/watch/${anime.id}/${ep.episode_number}`)}
-                                        className={`flex items-start gap-3 p-2 cursor-pointer transition-colors border-b ${Number(ep.episode_number) === Number(episodeNum)
-                                            ? 'bg-[#f47521]/10 border-[#f47521] dark:bg-[#f47521]/20'
-                                            : 'bg-white dark:bg-[#111] border-gray-200 dark:border-[#222] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'
-                                            }`}
-                                    >
-                                        {/* Thumbnail */}
-                                        <div className="relative w-48 aspect-video flex-shrink-0 overflow-hidden bg-gray-900">
-                                            <img
-                                                src={getImageUrl(ep.thumbnail || ep.banner)}
-                                                alt={ep.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                            {/* Episode Number Badge */}
-                                            <div className="absolute top-1 left-1 px-1.5 py-0.5 text-[10px] font-bold bg-black/80 text-white">
-                                                EP {ep.episode_number}
-                                            </div>
-                                            {/* Duration Badge (New) */}
-                                            <div className="absolute bottom-1 right-1 px-1 py-0.5 text-[10px] font-bold bg-black/80 text-white">
-                                                {ep.duration ? `${ep.duration}m` : '24m'}
-                                            </div>
-                                            {/* Play Indicator Overlay */}
-                                            {Number(ep.episode_number) === Number(episodeNum) && (
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                                    <Play className="w-8 h-8 text-white fill-white opacity-90" />
+                            <div className="flex flex-col">
+                                <div ref={listRef} className={`flex flex-col gap-2 overflow-y-auto pr-0 md:pr-2 custom-scrollbar relative ${isMobile && !isEpisodesExpanded ? 'max-h-none' : 'h-[700px]'}`}>
+                                    {/* Render Logic: Slicing for mobile */}
+                                    {(isMobile && !isEpisodesExpanded ? filteredEpisodes.slice(0, 1) : filteredEpisodes).map((ep: any) => (
+                                        <div
+                                            key={ep.id}
+                                            ref={Number(ep.episode_number) === Number(episodeNum) ? activeEpisodeRef : null}
+                                            onClick={() => navigate(`/${lang}/watch/${anime.id}/${ep.episode_number}`)}
+                                            className={`flex items-start gap-2 md:gap-3 p-1 md:p-2 cursor-pointer transition-colors border-b ${Number(ep.episode_number) === Number(episodeNum)
+                                                ? 'bg-[#f47521]/10 border-[#f47521] dark:bg-[#f47521]/20'
+                                                : 'bg-white dark:bg-[#111] border-gray-200 dark:border-[#222] hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'
+                                                }`}
+                                        >
+                                            {/* Thumbnail */}
+                                            <div className="relative w-48 aspect-video flex-shrink-0 overflow-hidden bg-gray-900">
+                                                <img
+                                                    src={getImageUrl(ep.thumbnail || ep.banner)}
+                                                    alt={ep.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                {/* Episode Number Badge */}
+                                                <div className="absolute top-1 left-1 px-1.5 py-0.5 text-[10px] font-bold bg-black/80 text-white">
+                                                    EP {ep.episode_number}
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0 flex flex-col justify-start h-full py-1">
-                                            <h4 className={`text-sm font-bold mb-1 line-clamp-2 ${Number(ep.episode_number) === Number(episodeNum) ? 'text-[#f47521]' : 'text-gray-900 dark:text-white'}`}>
-                                                {(lang === 'ar' ? ep.title : ep.title_en) || `Episode ${ep.episode_number}`}
-                                            </h4>
-
-                                            {/* Episode Description */}
-                                            {(ep.description || ep.description_en) && (
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
-                                                    {lang === 'ar' ? (ep.description || ep.description_en) : (ep.description_en || ep.description)}
-                                                </p>
-                                            )}
-
-                                            {/* Meta Info */}
-                                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-auto">
-                                                <span>{getRelativeTime(ep.created_at || new Date().toISOString(), lang)}</span>
-                                                {ep.views_count && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Eye className="w-3 h-3" />
-                                                            {ep.views_count}
-                                                        </span>
-                                                    </>
+                                                {/* Duration Badge (New) */}
+                                                <div className="absolute bottom-1 right-1 px-1 py-0.5 text-[10px] font-bold bg-black/80 text-white">
+                                                    {ep.duration ? `${ep.duration}m` : '24m'}
+                                                </div>
+                                                {/* Play Indicator Overlay */}
+                                                {Number(ep.episode_number) === Number(episodeNum) && (
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                        <Play className="w-8 h-8 text-white fill-white opacity-90" />
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        {/* Sidebar Watch Later Button */}
-                                        <div className="self-center pl-1">
-                                            <WatchLaterButton
-                                                animeId={Number(animeId)}
-                                                episodeId={Number(ep.id)}
-                                                variant="sidebar"
-                                            />
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0 flex flex-col justify-start h-full py-1">
+                                                <h4 className={`text-sm font-bold mb-1 line-clamp-2 ${Number(ep.episode_number) === Number(episodeNum) ? 'text-[#f47521]' : 'text-gray-900 dark:text-white'}`}>
+                                                    {(lang === 'ar' ? ep.title : ep.title_en) || `Episode ${ep.episode_number}`}
+                                                </h4>
+
+                                                {/* Episode Description */}
+                                                {(ep.description || ep.description_en) && (
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
+                                                        {lang === 'ar' ? (ep.description || ep.description_en) : (ep.description_en || ep.description)}
+                                                    </p>
+                                                )}
+
+                                                {/* Meta Info */}
+                                                <div className="flex items-center gap-2 text-xs text-gray-500 mt-auto">
+                                                    <span>{getRelativeTime(ep.created_at || new Date().toISOString(), lang)}</span>
+                                                    {ep.views_count && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="flex items-center gap-1">
+                                                                <Eye className="w-3 h-3" />
+                                                                {ep.views_count}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Sidebar Watch Later Button */}
+                                            <div className="self-center pl-1">
+                                                <WatchLaterButton
+                                                    animeId={Number(animeId)}
+                                                    episodeId={Number(ep.id)}
+                                                    variant="sidebar"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+
+                                {/* Expand/Collapse Button for Mobile */}
+                                {isMobile && filteredEpisodes.length > 1 && (
+                                    <button
+                                        onClick={() => setIsEpisodesExpanded(!isEpisodesExpanded)}
+                                        className="w-full py-3 mt-4 flex items-center justify-center gap-3 bg-black border-2 border-white text-white font-bold text-sm tracking-wide hover:bg-gray-900 transition-colors"
+                                    >
+                                        {isEpisodesExpanded ? (
+                                            <>
+                                                <span>{lang === 'ar' ? 'أخفاء باقي الحلقات' : 'Hide remaining episodes'}</span>
+                                                <ChevronUp className="w-5 h-5" />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>{lang === 'ar' ? 'تفقد المزيد من الحلقات' : 'Check more episodes'}</span>
+                                                <Library className="w-5 h-5" />
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         )}
 
-                        {/* Comments Content */}
                         {/* Comments Content */}
                         {activeTab === 'comments' && (
                             <CommentsSection episodeId={Number(currentEpisode?.id)} />
@@ -597,7 +666,7 @@ export default function WatchPage() {
                         {lang === 'ar' ? 'آخر الحلقات المضافة' : 'Latest Episodes'}
                     </h3>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 relative z-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-1 md:gap-6 relative z-0 px-2 md:px-0">
                         {/* Reusing the card design from AnimeBrowsePage for consistency */}
                         {(latestEpisodesData || []).map((episode: any, index: number) => {
                             // Logic matching Vue/BrowsePage
@@ -616,7 +685,7 @@ export default function WatchPage() {
                                     onMouseLeave={handleMouseLeave}
                                 >
                                     {/* Cover Container */}
-                                    <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-[#1c1c1c] mb-2 shadow-sm group-hover:shadow-md transition-shadow">
+                                    <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-[#1c1c1c] mb-1 md:mb-2 shadow-sm group-hover:shadow-md transition-shadow">
                                         <img
                                             src={getImageUrl(image)}
                                             alt={displayTitle}
@@ -638,7 +707,7 @@ export default function WatchPage() {
                                     </div>
 
                                     {/* Metadata Below Card */}
-                                    <div className="space-y-1 px-1 text-center">
+                                    <div className="space-y-1 px-0 md:px-1 text-center">
                                         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 line-clamp-2 leading-tight">
                                             {displayTitle}
                                         </h3>

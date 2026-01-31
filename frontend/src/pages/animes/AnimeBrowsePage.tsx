@@ -51,7 +51,7 @@ export default function AnimeBrowsePage() {
                 <div className="w-full">
                     {/* Placeholder for Hero/News Slider if needed, skipping for now as per minimal request */}
 
-                    <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-8">
+                    <div className="max-w-6xl mx-auto px-2 sm:px-6 md:px-8 py-8">
 
                         {/* Latest Episodes Section */}
                         <Section
@@ -173,7 +173,7 @@ const Section = ({ title, endpoint, type, limit, showSearch, search, setSearch, 
             {isLoading ? (
                 type === 'episode' ? <EpisodeSkeleton count={limit} /> : <CrunchyrollSkeleton count={limit} />
             ) : items?.length > 0 ? (
-                <div className={`grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 ${type === 'episode' ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-5 xl:grid-cols-6'} gap-6 relative z-0`}>
+                <div className={`grid ${type === 'episode' ? 'grid-cols-2' : 'grid-cols-3'} sm:grid-cols-3 md:grid-cols-4 ${type === 'episode' ? 'lg:grid-cols-4 xl:grid-cols-4' : 'lg:grid-cols-5 xl:grid-cols-6'} ${type === 'episode' ? 'gap-1 md:gap-6' : 'gap-2 md:gap-6'} relative z-0`}>
                     {items.map((item: any, index: number) => (
                         <CardItem
                             key={item.id}
@@ -227,7 +227,7 @@ const CardItem = ({ item, index, type, lang, isHovered, onMouseEnter, onMouseLea
             onClick={handleCardClick}
         >
             {/* Cover Container */}
-            <div className={`relative ${isEpisode ? 'aspect-video' : 'aspect-[2/3]'} overflow-hidden bg-gray-100 dark:bg-[#1c1c1c] mb-2`}>
+            <div className={`relative ${isEpisode ? 'aspect-video' : 'aspect-[2/3]'} overflow-hidden bg-gray-100 dark:bg-[#1c1c1c] mb-1`}>
                 <img
                     src={getImageUrl(image)}
                     alt={displayTitle}
@@ -249,7 +249,7 @@ const CardItem = ({ item, index, type, lang, isHovered, onMouseEnter, onMouseLea
             </div>
 
             {/* Metadata Below Card */}
-            <div className="space-y-1 px-1 text-center">
+            <div className="space-y-1 px-0 md:px-1 text-center">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-tight">
                     {displayTitle}
                 </h3>

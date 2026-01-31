@@ -77,7 +77,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({ episodeId }) =
     const getAvatarUrl = (avatar?: string) => {
         if (!avatar) return '';
         if (avatar.startsWith('http')) return avatar;
-        return `${(import.meta as any).env.VITE_API_URL}/uploads/${avatar}`;
+        return avatar.startsWith('/') ? avatar : `/${avatar}`;
     };
 
     const addComment = async () => {

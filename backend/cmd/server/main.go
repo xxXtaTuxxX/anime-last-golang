@@ -207,6 +207,9 @@ func main() {
 				c.JSON(200, gin.H{"id": userID, "role": role})
 			})
 
+			// User Profile Update
+			protected.POST("/user/profile/update", userHandler.UpdateProfile)
+
 			// Admin/Protected Routes
 			protected.Group("/users").GET("", userHandler.GetAll).POST("", userHandler.Create).PUT("/:id", userHandler.Update).DELETE("/:id", userHandler.Delete)
 			protected.Group("/roles").GET("", roleHandler.GetAll).POST("", roleHandler.Create).PUT("/:id", roleHandler.Update).DELETE("/:id", roleHandler.Delete)

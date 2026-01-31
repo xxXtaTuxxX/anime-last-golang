@@ -113,3 +113,62 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
+
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	// 1. Get User ID from Context (set by AuthMiddleware)
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	// Depending on middleware, it might be float64 (JWT default) or int/uint. Safe assertion:
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case int:
+		userID = uint(v)
+	case float64:
+		userID = uint(v)
+	default:
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in context"})
+		return
+	}
+
+	// 2. Parse Form Data
+	name := c.PostForm("name")
+	// If name is empty, we might want to fetch current or require it. Frontend sends it.
+
+	currentPassword := c.PostForm("current_password")
+	newPassword := c.PostForm("new_password")
+
+	// 3. Handle Avatar File
+	var avatarPath string
+	file, err := c.FormFile("avatar")
+	if err == nil {
+		// Create unique filename
+		filename := strconv.FormatInt(int64(userID), 10) + "_" + strconv.FormatInt(int64(c.Writer.Status()), 10) + "_" + file.Filename
+		dst := "uploads/avatars/" + filename
+
+		// Ensure directory exists (optional, but good practice)
+		// os.MkdirAll("uploads/avatars", os.ModePerm)
+
+		if err := c.SaveUploadedFile(file, dst); err == nil {
+			avatarPath = "/uploads/avatars/" + filename
+		} else {
+			// Log error if needed
+		}
+	}
+
+	// 4. Call Service
+	updatedUser, err := h.service.UpdateProfile(userID, name, currentPassword, newPassword, avatarPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error(), "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile updated successfully",
+		"user":    updatedUser,
+	})
+}

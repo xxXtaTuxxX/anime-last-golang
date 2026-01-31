@@ -81,3 +81,41 @@ func (s *UserService) Delete(id uint) error {
 func (s *UserService) Search(query string) ([]domain.User, error) {
 	return s.repo.SearchUsers(query)
 }
+
+func (s *UserService) UpdateProfile(id uint, name, currentPassword, newPassword string, avatarPath string) (*domain.User, error) {
+	user, err := s.repo.GetUserByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Name = name
+
+	if avatarPath != "" {
+		user.Avatar = avatarPath
+	}
+
+	if newPassword != "" {
+		if currentPassword == "" {
+			return nil, errors.New("current password is required to set a new password")
+		}
+		// Verify current password
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+			return nil, errors.New("incorrect current password")
+		}
+		// Hash new password
+		hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		user.Password = string(hashed)
+	}
+
+    // Explicitly zero out Role to prevent GORM from trying to update/insert the related role
+    user.Role = domain.Role{}
+
+	if err := s.repo.UpdateUser(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
